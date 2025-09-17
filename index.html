@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cattle & Buffalo Breed Recognition</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
+        .upload-box { border: 2px dashed #aaa; padding: 20px; width: 300px; margin: auto; }
+        .result { margin-top: 20px; font-size: 20px; font-weight: bold; color: green; }
+        img { max-width: 300px; margin-top: 20px; border-radius: 10px; }
+    </style>
+</head>
+<body>
+    <h1>🐄 Breed Recognition for Cattle & Buffaloes 🐃</h1>
+    <div class="upload-box">
+        <form action="/predict" method="post" enctype="multipart/form-data">
+            <input type="file" name="file" required>
+            <br><br>
+            <button type="submit">Predict Breed</button>
+        </form>
+    </div>
+
+    {% if breed %}
+        <div class="result">Predicted Breed: {{ breed }}</div>
+        <img src="{{ img_path }}" alt="Uploaded Image">
+    {% endif %}
+</body>
+</html>
