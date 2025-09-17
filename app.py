@@ -4,18 +4,26 @@ from tensorflow.keras.preprocessing import image
 import numpy as np
 import os
 
+# ---------------------------
+# Load model
+# ---------------------------
 MODEL_PATH = "breed_recognition_model.h5"
 
-# Load model
 try:
     model = keras.models.load_model(MODEL_PATH)
 except Exception as e:
     print("Error loading model:", e)
     model = None
 
+# ---------------------------
+# Flask setup
+# ---------------------------
 app = Flask(__name__)
 app.config["UPLOAD_FOLDER"] = "uploads"
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+
+# Replace these with your actual class labels
+LABELS = ["Beagle", "Pug", "Bulldog", "Golden Retriever", "Labrador"]
 
 HTML_PAGE = """
 <!DOCTYPE html>
@@ -44,7 +52,7 @@ def predict():
         return "Model not loaded"
 
     try:
-        # Get uploaded file
+        # Check if file is uploaded
         if "file" not in request.files:
             return render_template_string(HTML_PAGE, prediction="No file uploaded")
         file = request.files["file"]
@@ -60,10 +68,14 @@ def predict():
         # Predict
         pred = model.predict(x)
         pred_class = np.argmax(pred, axis=1)[0]
+        pred_breed = LABELS[pred_class]
 
-        return render_template_string(HTML_PAGE, prediction=f"Class ID: {pred_class}")
+        return render_template_string(HTML_PAGE, prediction=f"Predicted Breed: {pred_breed}")
     except Exception as e:
         return f"Error: {e}"
 
+# ---------------------------
+# Run server
+# ---------------------------
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
