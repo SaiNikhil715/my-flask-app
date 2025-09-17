@@ -3,14 +3,24 @@ from tensorflow import keras
 from tensorflow.keras.preprocessing import image
 import numpy as np
 import os
+import gdown
 
 # ---------------------------
-# Load model
+# Google Drive model settings
 # ---------------------------
 MODEL_PATH = "breed_recognition_model.h5"
+FILE_ID = "https://drive.google.com/file/d/1GPrNFPJ9txqsID_jlA0UmZaQBOcf68xU/view?usp=sharing"  # Replace with your actual Google Drive file ID
 
+# Download model if not exists
+if not os.path.exists(MODEL_PATH):
+    url = f"https://drive.google.com/uc?id={FILE_ID}"
+    print("Downloading model from Google Drive...")
+    gdown.download(url, MODEL_PATH, quiet=False)
+
+# Load model
 try:
     model = keras.models.load_model(MODEL_PATH)
+    print("Model loaded successfully!")
 except Exception as e:
     print("Error loading model:", e)
     model = None
@@ -60,10 +70,10 @@ def predict():
         file.save(filepath)
 
         # Preprocess image
-        img = image.load_img(filepath, target_size=(224, 224))  # adjust size for your model
+        img = image.load_img(filepath, target_size=(224, 224))  # adjust to your model input
         x = image.img_to_array(img)
         x = np.expand_dims(x, axis=0)
-        x /= 255.0  # normalize if your model was trained with [0,1]
+        x /= 255.0  # normalize if model trained on [0,1]
 
         # Predict
         pred = model.predict(x)
