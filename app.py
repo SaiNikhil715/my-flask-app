@@ -1,40 +1,30 @@
 from flask import Flask, request, render_template_string
 from tensorflow import keras
+from tensorflow.keras.preprocessing import image
 import numpy as np
 import os
-import gdown
 
-# ----------------------------
-# Google Drive model settings
-# ----------------------------
-FILE_ID = "1GPrNFPJ9txqsID_jlA0UmZaQBOcf68xU"
 MODEL_PATH = "breed_recognition_model.h5"
 
-# Download model if not exists
-if not os.path.exists(MODEL_PATH):
-    url = f"https://drive.google.com/uc?id={FILE_ID}"  # Correct f-string
-    gdown.download(url, MODEL_PATH, quiet=False)
-
-# Load model safely
+# Load model
 try:
     model = keras.models.load_model(MODEL_PATH)
 except Exception as e:
     print("Error loading model:", e)
-    model = None  # Prevent crash if model fails
+    model = None
 
-# ----------------------------
-# Flask app
-# ----------------------------
 app = Flask(__name__)
+app.config["UPLOAD_FOLDER"] = "uploads"
+os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
 HTML_PAGE = """
 <!DOCTYPE html>
 <html>
-<head><title>Flask ML Prototype</title></head>
+<head><title>Breed Recognition Prototype</title></head>
 <body>
-<h2>✅ ML Prototype</h2>
-<form method="POST" action="/predict">
-<input type="text" name="input_data" placeholder="comma separated numbers" size="40">
+<h2>✅ Breed Recognition Prototype</h2>
+<form method="POST" action="/predict" enctype="multipart/form-data">
+<input type="file" name="file" accept="image/*" required>
 <button type="submit">Predict</button>
 </form>
 {% if prediction is not none %}
@@ -51,100 +41,29 @@ def home():
 @app.route("/predict", methods=["POST"])
 def predict():
     if model is None:
-        return "Model not loaded. Check server logs."
+        return "Model not loaded"
+
     try:
-        # Read and convert input
-        data = request.form.get("input_data", "")
-        if not data:
-            return render_template_string(HTML_PAGE, prediction="No input provided")
+        # Get uploaded file
+        if "file" not in request.files:
+            return render_template_string(HTML_PAGE, prediction="No file uploaded")
+        file = request.files["file"]
+        filepath = os.path.join(app.config["UPLOAD_FOLDER"], file.filename)
+        file.save(filepath)
 
-        numbers = np.array([float(x.strip()) for x in data.split(",")]).reshape(1, -1)
+        # Preprocess image
+        img = image.load_img(filepath, target_size=(224, 224))  # adjust size for your model
+        x = image.img_to_array(img)
+        x = np.expand_dims(x, axis=0)
+        x /= 255.0  # normalize if your model was trained with [0,1]
 
-        # Prediction
-        prediction = model.predict(numbers)
-        prediction = prediction.tolist()  # Convert to Python list
+        # Predict
+        pred = model.predict(x)
+        pred_class = np.argmax(pred, axis=1)[0]
 
-        return render_template_string(HTML_PAGE, prediction=prediction)
+        return render_template_string(HTML_PAGE, prediction=f"Class ID: {pred_class}")
     except Exception as e:
-        return f"Error processing input: {e}"
+        return f"Error: {e}"
 
-# ----------------------------
-# Run server
-# ----------------------------
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
-from flask import Flask, request, render_template_string
-from tensorflow import keras
-import numpy as np
-import os
-import gdown
-
-# ----------------------------
-# Google Drive model settings
-# ----------------------------
-FILE_ID = "1GPrNFPJ9txqsID_jlA0UmZaQBOcf68xU"
-MODEL_PATH = "breed_recognition_model.h5"
-
-# Download model if not exists
-if not os.path.exists(MODEL_PATH):
-    url = f"https://drive.google.com/uc?id={FILE_ID}"  # Correct f-string
-    gdown.download(url, MODEL_PATH, quiet=False)
-
-# Load model safely
-try:
-    model = keras.models.load_model(MODEL_PATH)
-except Exception as e:
-    print("Error loading model:", e)
-    model = None  # Prevent crash if model fails
-
-# ----------------------------
-# Flask app
-# ----------------------------
-app = Flask(__name__)
-
-HTML_PAGE = """
-<!DOCTYPE html>
-<html>
-<head><title>Flask ML Prototype</title></head>
-<body>
-<h2>✅ ML Prototype</h2>
-<form method="POST" action="/predict">
-<input type="text" name="input_data" placeholder="comma separated numbers" size="40">
-<button type="submit">Predict</button>
-</form>
-{% if prediction is not none %}
-<h3>Prediction: {{ prediction }}</h3>
-{% endif %}
-</body>
-</html>
-"""
-
-@app.route("/", methods=["GET"])
-def home():
-    return render_template_string(HTML_PAGE, prediction=None)
-
-@app.route("/predict", methods=["POST"])
-def predict():
-    if model is None:
-        return "Model not loaded. Check server logs."
-    try:
-        # Read and convert input
-        data = request.form.get("input_data", "")
-        if not data:
-            return render_template_string(HTML_PAGE, prediction="No input provided")
-
-        numbers = np.array([float(x.strip()) for x in data.split(",")]).reshape(1, -1)
-
-        # Prediction
-        prediction = model.predict(numbers)
-        prediction = prediction.tolist()  # Convert to Python list
-
-        return render_template_string(HTML_PAGE, prediction=prediction)
-    except Exception as e:
-        return f"Error processing input: {e}"
-
-# ----------------------------
-# Run server
-# ----------------------------
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
