@@ -1,6 +1,7 @@
 from flask import Flask, request, render_template_string
 from tensorflow import keras
-from tensorflow.keras import layers, models, image
+from tensorflow.keras import layers, models
+from tensorflow.keras.utils import load_img, img_to_array
 import numpy as np
 import os
 import gdown
@@ -9,7 +10,7 @@ import gdown
 # Paths and Google Drive
 # ---------------------------
 MODEL_PATH = "breed_recognition_model.h5"
-FILE_ID = "https://drive.google.com/file/d/1GPrNFPJ9txqsID_jlA0UmZaQBOcf68xU/view?usp=sharing"  # replace with your Drive model ID
+FILE_ID = "https://drive.google.com/file/d/1GPrNFPJ9txqsID_jlA0UmZaQBOcf68xU/view?usp=sharing"  # Replace with your Drive model ID
 
 # ---------------------------
 # Function to create dummy model
@@ -88,11 +89,12 @@ def predict():
         file.save(filepath)
 
         # Preprocess image
-        img = image.load_img(filepath, target_size=(224, 224))
-        x = image.img_to_array(img)
+        img = load_img(filepath, target_size=(224, 224))
+        x = img_to_array(img)
         x = np.expand_dims(x, axis=0)
         x /= 255.0
 
+        # Predict
         pred = model.predict(x)
         pred_class = np.argmax(pred, axis=1)[0]
         pred_breed = LABELS[pred_class]
